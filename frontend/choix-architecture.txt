@@ -1,0 +1,120 @@
+================================================================================
+ARCHITECTURE FRONTEND OFFICIELLE - PROJET VITEFÊ (ABIDJAN / AFRIQUE DE L'OUEST)
+Format de développement retenu : React (JSX) + Vite + Tailwind CSS
+================================================================================
+
+1. CONTEXTE ET CONTRAINTES SPÉCIFIQUES DU TERRAIN
+--------------------------------------------------------------------------------
+Vitefê opère sur le marché ivoirien et ouest-africain avec des exigences critiques :
+- Forte dominance mobile avec appareils d'entrée/moyen de gamme (RAM et CPU limités).
+- Connectivité réseau oscillante (3G/4G instable).
+- Haute criticité du temps réel (Règle de dispatching des 3 minutes, tracking GPS).
+- Utilisation intensive des capteurs du smartphone : Microphone (IA vocale Nouchi,
+  Dioula, Baoulé), Caméra (diagnostic pannes par photo), Géolocalisation GPS.
+- Double cible : Plateforme Web et Application Mobile installable.
+
+2. STACK TECHNIQUE RETENUE (100% UNIFIÉE WEB & MOBILE EN JSX)
+--------------------------------------------------------------------------------
+- BUNDLER & RUNTIME : Vite + React (JSX)
+  -> Vitesse de compilation instantanée, bundle ultra-léger (< 150 KB initial).
+  -> Fichiers en .jsx pour un développement fluide, rapide et sans lourdeur de typage.
+
+- WRAPPER MOBILE NATIF : Capacitor (Ionic)
+  -> Permet de générer directement l'APK Android et l'application iOS depuis
+     le même code JSX.
+  -> Accès aux APIs natives : GPS, Micro, Caméra, Notifications Push, SMS OTP.
+
+- PWA (PROGRESSIVE WEB APP) : Vite PWA Plugin (Workbox)
+  -> Installable directement depuis le navigateur sans passer obligatoirement
+     par le Play Store.
+  -> Stratégie Offline-First : consultation possible même en zone blanche.
+
+- STYLING & DESIGN SYSTEM : Tailwind CSS + Icônes Lucide-React
+  -> Zéro overhead JS au runtime (CSS compilé statiquement).
+  -> Charte officielle intégrée : Vert Kita (#0F4D32), Accent Or/Cuivre (#C88A35),
+     Rouge SOS Urgence (#DC2626).
+  -> Respect strict des zones tactiles mobiles (Touch Targets de 48px minimum).
+
+- SERVER STATE & CACHE RÉSEAU : TanStack Query (React Query)
+  -> Indispensable pour les réseaux instables : mise en cache automatique,
+     réessais en arrière-plan, synchronisation dès que la 4G revient.
+
+- ÉTAT GLOBAL CLIENT : Zustand
+  -> Ultra-léger (1 KB), sans boilerplate.
+  -> Persistance locale native (choix de la langue, session utilisateur, panier).
+
+- TEMPS RÉEL & DISPATCHING : Socket.io-client / Server-Sent Events (SSE)
+  -> Gestion du compte à rebours des 3 minutes et tracking live de l'artisan.
+
+- CARTOGRAPHIE : Leaflet / MapLibre GL
+  -> Rendu fluide et léger, beaucoup moins consommateur de RAM que Google Maps.
+
+3. STRUCTURE LOGICIELLE MODULAIRE (FEATURE-DRIVEN EN JSX)
+--------------------------------------------------------------------------------
+Le projet est structuré par fonctionnalités métiers indépendantes :
+
+frontend/
+├── images/                         # Visuels de référence et maquettes
+├── src/
+│   ├── app/                        # Entrée et configuration générale
+│   │   ├── App.jsx                 # Composant racine
+│   │   ├── routes.jsx              # Définition des routes (React Router)
+│   │   └── providers.jsx           # Providers globaux (QueryClient, Auth, Theme)
+│   │
+│   ├── core/                       # Services et utilitaires transversaux
+│   │   ├── api/                    # Client HTTP (Axios/Fetch avec intercepteurs)
+│   │   ├── audio/                  # Enregistreur vocal (MediaRecorder) & ondes audio
+│   │   ├── geolocation/            # Service GPS et calcul de distance
+│   │   ├── i18n/                   # Dictionnaires de langues (Nouchi, Dioula, Français...)
+│   │   ├── socket/                 # Client WebSocket temps réel
+│   │   └── theme/                  # Constantes de couleurs et styles
+│   │
+│   ├── components/ui/              # Composants graphiques réutilisables
+│   │   ├── Button.jsx              # Boutons standard et tactiles
+│   │   ├── Card.jsx                # Cartes d'affichage
+│   │   ├── Input.jsx               # Champs de texte avec masques
+│   │   ├── Modal.jsx               # Fenêtres modales
+│   │   ├── BottomSheet.jsx         # Tiroir coulissant mobile
+│   │   └── VoiceWave.jsx           # Animation visuelle du micro actif
+│   │
+│   ├── features/                   # Modules métiers indépendants
+│   │   │
+│   │   ├── onboarding/             # Écran BD de bienvenue et sélection de langue
+│   │   ├── emergency/              # Bouton et flux "SOS Urgence"
+│   │   ├── escrow/                 # Séquestre : blocage Wave/Orange/MTN, validation OTP
+│   │   ├── dispatch/               # Algorithme 3 min, carte de suivi en direct
+│   │   │
+│   │   └── services/               # Les 6 verticaux Vitefê
+│   │       ├── artisans/           # Dépannage express, diagnostic photo/vocal
+│   │       ├── health/             # Pharmacies de garde 24/7, soins infirmiers
+│   │       ├── veterinary/         # Urgence vitale animale, guide BD premiers secours
+│   │       ├── real-estate/        # Recherche habitat, KYC propriétaires vérifiés
+│   │       ├── recharge-data/      # Achat unités / pass internet instantané (<30s)
+│   │       └── marketplace/        # Quincaillerie d'urgence, livraison express
+│   │
+│   └── store/                      # Stores Zustand (useAuthStore, useAppStore)
+│
+├── index.html                      # Template HTML avec viewport mobile optimisé
+├── package.json                    # Dépendances du projet
+├── tailwind.config.js              # Configuration de la charte graphique Vitefê
+└── vite.config.js                  # Configuration Vite + PWA
+
+4. AVANTAGES MAJEURS DE CETTE ARCHITECTURE EN JSX
+--------------------------------------------------------------------------------
+1. SIMPLICITÉ ET VITESSE DE DÉVELOPPEMENT :
+   L'utilisation de JSX permet d'itérer très rapidement sur l'interface sans
+   friction de typage tout en conservant une structure de code propre et modulaire.
+
+2. CODE UNIQUE POUR WEB ET MOBILE :
+   98% du code écrit en JSX est partagé entre l'application web et les applications
+   mobiles Android / iOS compilées via Capacitor.
+
+3. RÉSILIENCE AUX PANNES RÉSEAU :
+   Grâce au couple Zustand (stockage local) et TanStack Query (cache intelligent),
+   l'application reste réactive même en cas de coupure soudaine de connexion à Abidjan.
+
+4. ISOLATION DES SERVICES :
+   Chaque service (Santé, Artisans, Cabine en ligne) dispose de ses propres
+   composants et requêtes. Une panne sur l'API d'un opérateur télécom n'impacte
+   en rien les services de plomberie ou de pharmacie.
+================================================================================

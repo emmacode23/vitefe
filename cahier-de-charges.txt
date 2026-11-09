@@ -1,0 +1,45 @@
+Voici le Cahier des Charges Fonctionnel et Technique récapitulatif et exhaustif de la plateforme Vitefê, mis à jour avec l'ensemble des 6 services clés, l'architecture IA, le multilinguisme et les spécifications de sécurité.
+CAHIER DES CHARGES FONCTIONNEL & TECHNIQUE (SPECIFICATIONS OFFICIELLES)
+Projet : Application Mobile & Plateforme Web "Vitefê"
+Identité Visuelle : Logo fond vert Kita, Cheval et "V" aux couleurs d'origine. Style BD pour l'onboarding et les guides.
+Monétisation & Sécurité : Séquestre des paiements (Escrow) adossé au Mobile Money (Wave, Orange Money, MTN Money).
+1. ARCHITECTURE DES 6 SERVICES CLÉS
+1.1. Service : Artisans (Dépannages & Travaux)
+ * Périmètre : Plomberie, Électricité, Froid/Climatisation, Serrurerie, Maçonnerie/Peinture.
+ * Triage & IA Vocale/Visuelle : Analyse sémantique des mémos vocaux (Nouchi, Dioula, Baoulé, Bété, Français, Anglais, Arabe, Chinois, Russe) et diagnostic des pannes par analyse photo.
+ * Dispatching (Règle des 3 minutes) : Notification instantanée des 3 artisans accrédités les plus proches. Si aucune réponse en 3 minutes, élargissement automatique de la zone géographique.
+ * Séquestre : Paiement pré-autorisé via Mobile Money, bloqué jusqu'à la validation du code unique de fin de mission par le client.
+1.2. Service : Santé (Pharmacies & Soins)
+ * Périmètre : Pharmacies de garde, Soins infirmiers à domicile, Urgences / Transport sanitaire.
+ * Pharmacies de Garde : Carte interactive géolocalisée 24/7 avec vérification en temps réel de la disponibilité des stocks de médicaments.
+ * Soins Infirmiers : Module de commande d'actes (injections, pansements, perfusions) avec upload obligatoire et chiffré de l'ordonnance médicale.
+ * Confidentialité : Chiffrement de bout en bout des données de santé et expiration automatique des pièces médicales après 48h.
+1.3. Service : Vétérinaire (Urgence & Suivi Animal)
+ * Périmètre : Chiens, Chats, NAC, Animaux d'élevage.
+ * Triage Prioritaire : Bouton d'urgence vitale basculant immédiatement la demande en tête de file pour les cliniques 24/7 et praticiens à domicile.
+ * Guide BD & Premiers Secours : Affichage dynamique de fiches illustrées en vignettes BD expliquant les gestes de premiers secours pendant l'attente du praticien.
+ * Carnet de Santé Numérique : Historique et traçabilité des soins intégrés au profil de l'animal.
+1.4. Service : Immobilier (Recherche & Dépannage Habitat)
+ * Périmètre : Recherche (Location/Achat) et Urgences techniques (fuites d'eau majeures, pannes électriques générales, serrurerie lourde).
+ * Filtres & KYC strict : Validation KYC obligatoire des propriétaires/agents (pièce d'identité et preuve de propriété) pour éliminer les arnaques.
+ * Action Directe : Réservation de visite ou envoi d'équipe technique avec gestion du paiement via séquestre.
+1.5. Service : Cabine en Ligne (Unités Internet & Data)
+ * Périmètre : Achat immédiat de passes Internet (Jour, Semaine, Mois) et unités d'appels pour tous les opérateurs (Orange, MTN, Moov).
+ * Fonctionnalités : Rechargement rapide pour soi-même ou un tiers à distance, dépannage data d'urgence, et rechargement des routeurs/box domestiques.
+ * Exécution Rapide : Traitement automatisé par API en moins de 30 secondes sans blocage séquestre long.
+1.6. Service : Vente / Marketplace de Proximité (E-commerce)
+ * Périmètre : Vente de matériel de première urgence (quincaillerie, petit matériel électrique, ampoules, multiprises), produits de consommation courante et articles divers auprès de commerçants partenaires locaux.
+ * Recherche Multilingue & IA : Recherche vocale des articles en langues locales ou internationales.
+ * Livraison & Séquestre : Dispatching automatique d'un livreur géolocalisé et libération des fonds au commerçant dès confirmation de livraison par le client.
+2. PARCOURS D'INSCRIPTION & GESTION MULTILINGUE
+ * Écran de Bienvenue (Onboarding BD) : Découverte des services via un mini-strip illustré reprenant l'identité visuelle officielle (fond vert Kita, cheval et "V" d'origine).
+ * Choix Obligatoire de la Langue :
+   * Langues Ivoiriennes & Locales : Dioula, Baoulé, Bété, Nouchi.
+   * Langues Internationales : Français, Anglais, Arabe, Chinois, Russe.
+ * Moteur Vocal & NLP : Configuration de l'IA pour la transcription et la traduction bidirectionnelle automatique entre la langue choisie par l'utilisateur et les données des prestataires.
+3. SPÉCIFICATIONS TECHNIQUES ET SÉCURITÉ
+ * Architecture Cloud & API : Microservices modulaires (Service KYC, Service Dispatching, Service Escrow, Service NLP/IA).
+ * Séquestre Mobile Money (Escrow Engine) : API sécurisée connectée à Wave, Orange Money et MTN Money avec gestion des pré-autorisations, déblocages sur code OTP/QR et arbitrages de litiges.
+ * Matrice KYC Prestataires : Obligation de fournir Pièce d'Identité, Registre de Commerce/Patente, Diplôme/Accréditation (Santé/Vétérinaire) et Casier Judiciaire pour validation avant activation.
+ * Ergonomie UI/UX : Règle des 3 clics maximum pour l'accès aux services critiques d'urgence.
+Le cahier des charges fonctionnel et technique global est entièrement formalisé. Veux-tu que nous commencions l'organisation des maquettes wireframes des écrans ou la préparation des scripts pour les assistants vocaux ?
