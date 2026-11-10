@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import HomeScreen from '../features/home/HomeScreen';
 import LanguageSelectScreen from '../features/onboarding/LanguageSelectScreen';
 import RoleSelectScreen from '../features/onboarding/RoleSelectScreen';
@@ -6,17 +6,39 @@ import ClientRegistrationScreen from '../features/onboarding/ClientRegistrationS
 import ArtisanRegistrationScreen from '../features/onboarding/ArtisanRegistrationScreen';
 import LoginScreen from '../features/auth/LoginScreen';
 import DashboardScreen from '../features/dashboard/DashboardScreen';
+import { api, clearSession, getSessionToken } from '../api';
+
+function getCoordinates() {
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) return resolve({});
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => resolve({ latitude: coords.latitude, longitude: coords.longitude }),
+      () => resolve({}),
+      { enableHighAccuracy: true, maximumAge: 60000, timeout: 5000 },
+    );
+  });
+}
 
 export default function App() {
-  const [currentView, setCurrentView] = useState('welcome'); 
+  const [currentView, setCurrentView] = useState('welcome');
   // 'welcome' | 'language-select' | 'role-select' | 'register-client' | 'register-artisan' | 'login' | 'dashboard'
   
-  const [currentUser, setCurrentUser] = useState({
-    name: 'Aminata',
-    fullName: 'Aminata Touré',
-    commune: 'Abidjan, Cocody Blockhauss',
-    role: 'client'
-  });
+  const [currentUser, setCurrentUser] = useState(null);
+
+  useEffect(() => {
+    let active = true;
+    if (getSessionToken()) {
+      api.currentUser()
+        .then(({ user }) => {
+          if (active) {
+            setCurrentUser(user);
+            setCurrentView('dashboard');
+          }
+        })
+        .catch(clearSession);
+    }
+    return () => { active = false; };
+  }, []);
 
   const handleStartExperience = () => {
     // Redirige vers l'écran de sélection de langue (Étape 1/3)
@@ -42,13 +64,7 @@ export default function App() {
   };
 
   const handleRegistrationSuccess = (userData) => {
-    console.log('Inscription réussie :', userData);
-    setCurrentUser((prev) => ({
-      ...prev,
-      ...userData,
-      name: userData.fullName ? userData.fullName.split(' ')[0] : (userData.proName ? userData.proName.split(' ')[0] : 'Aminata')
-    }));
-    // Redirige directement vers le tableau de bord
+    setCurrentUser(userData);
     setCurrentView('dashboard');
   };
 
@@ -57,14 +73,7 @@ export default function App() {
   };
 
   const handleLoginSuccess = (userData) => {
-    console.log('Connexion réussie :', userData);
-    setCurrentUser((prev) => ({
-      ...prev,
-      ...userData,
-      name: 'Aminata',
-      commune: 'Abidjan, Cocody Blockhauss'
-    }));
-    // Redirige directement vers le tableau de bord de l'application
+    setCurrentUser(userData);
     setCurrentView('dashboard');
   };
 
@@ -77,15 +86,27 @@ export default function App() {
   };
 
   const handleLogout = () => {
+    clearSession();
+    setCurrentUser(null);
     setCurrentView('welcome');
   };
 
-  const handleSelectService = (serviceId) => {
-    alert(`Service "${serviceId.toUpperCase()}" ouvert :\nRecherche des professionnels accrédités les plus proches sous 3 minutes chrono à Abidjan.`);
+  const handleSelectService = async (serviceId) => {
+    try {
+      const { request } = await api.createRequest(serviceId);
+      alert(`Demande ${serviceId.toUpperCase()} enregistrée. Référence : ${request.id}`);
+    } catch (error) {
+      alert(error.message);
+    }
   };
 
-  const handleTriggerSOS = () => {
-    alert("🚨 URGENCE 3-MINUTES DÉCLENCHÉE :\nVos coordonnées GPS sont transmises aux services d'intervention prioritaires (Secours, Pompiers, Dépanneurs d'urgence).");
+  const handleTriggerSOS = async () => {
+    try {
+      const { alert: emergency } = await api.createEmergency(await getCoordinates());
+      alert(`Alerte SOS enregistrée. Référence : ${emergency.id}`);
+    } catch (error) {
+      alert(error.message);
+    }
   };
 
   return (

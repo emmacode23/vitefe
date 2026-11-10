@@ -1,14 +1,19 @@
 import React, { useState } from 'react';
+import { api } from '../../api';
 
 export default function ClientRegistrationScreen({ onBack, onSuccess, onGoToLogin }) {
-  const [fullName, setFullName] = useState('Aminata Touré');
-  const [phone, setPhone] = useState('07 89 45 12 00');
+  const [fullName, setFullName] = useState('');
+  const [phone, setPhone] = useState('');
   const [commune, setCommune] = useState('cocody');
-  const [password, setPassword] = useState('AbidjanSecur2026!');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [otp, setOtp] = useState(['4', '5', '5', '6']);
-  const [acceptTerms, setAcceptTerms] = useState(true);
+  const [otp, setOtp] = useState(['', '', '', '']);
+  const [acceptTerms, setAcceptTerms] = useState(false);
   const [toast, setToast] = useState({ show: false, message: '', subtitle: '' });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [apiError, setApiError] = useState('');
+  const [phoneVerified, setPhoneVerified] = useState(false);
+  const [otpRequested, setOtpRequested] = useState(false);
 
   const handlePhoneChange = (e) => {
     const raw = e.target.value.replace(/\D/g, '').substring(0, 10);
@@ -18,6 +23,10 @@ export default function ClientRegistrationScreen({ onBack, onSuccess, onGoToLogi
       formatted += raw[i];
     }
     setPhone(formatted);
+      setPhoneVerified(false);
+      setOtpRequested(false);
+      setOtp(['', '', '', '']);
+      setApiError('');
   };
 
   const handleOtpChange = (index, value) => {
@@ -27,9 +36,48 @@ export default function ClientRegistrationScreen({ onBack, onSuccess, onGoToLogi
     setOtp(newOtp);
   };
 
-  const handleFinalize = () => {
-    if (onSuccess) {
-      onSuccess({ fullName, phone, commune, role: 'client' });
+  const handleSendOtp = async () => {
+    setApiError('');
+    try {
+      const result = await api.requestOtp(phone);
+      setOtpRequested(true);
+      setPhoneVerified(false);
+      setToast({
+        show: true,
+        message: 'Code de vérification demandé',
+        subtitle: result.developmentCode ? `Code de test : ${result.developmentCode}` : result.message,
+      });
+    } catch (error) {
+      setApiError(error.message);
+    }
+  };
+
+  const handleVerifyPhone = async () => {
+    setApiError('');
+    try {
+      const result = await api.verifyOtp(phone, otp.join(''), false);
+      if (!result.verified) throw new Error('Ce numéro est déjà associé à un compte. Connectez-vous.');
+      setPhoneVerified(true);
+    } catch (error) {
+      setApiError(error.message);
+    }
+  };
+
+  const handleFinalize = async () => {
+    if (!phoneVerified) return;
+                          onChange={handlePhoneChange}
+                      {phoneVerified ? 'Numéro vérifié.' : otpRequested ? 'Saisissez le code reçu pour vérifier ce numéro.' : 'Demandez un code pour vérifier votre numéro.'}
+    setApiError('');
+    setIsSubmitting(true);
+    try {
+      const result = await api.register({
+        role: 'client', fullName, phone, commune, password, termsAccepted: acceptTerms,
+      });
+      onSuccess?.(result.user);
+    } catch (error) {
+      setApiError(error.message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -121,6 +169,7 @@ export default function ClientRegistrationScreen({ onBack, onSuccess, onGoToLogi
                     id="fullName" 
                     placeholder="ex: Aminata Touré" 
                     type="text" 
+                    required
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                   />
@@ -153,6 +202,7 @@ export default function ClientRegistrationScreen({ onBack, onSuccess, onGoToLogi
                       id="phoneInput" 
                       placeholder="07 00 12 34 56" 
                       type="tel" 
+                      required
                       value={phone}
                       onChange={handlePhoneChange}
                     />
@@ -216,6 +266,8 @@ export default function ClientRegistrationScreen({ onBack, onSuccess, onGoToLogi
                     className="w-full bg-surface-container-lowest text-on-surface font-body-md text-body-md rounded-lg py-3 pl-space-md pr-12 outline-none shadow-sm" 
                     id="passwordInput" 
                     type={showPassword ? 'text' : 'password'} 
+                    minLength={8}
+                    required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                   />
@@ -256,21 +308,24 @@ export default function ClientRegistrationScreen({ onBack, onSuccess, onGoToLogi
                       type="text" 
                       value={digit}
                       onChange={(e) => handleOtpChange(idx, e.target.value)}
+                      inputMode="numeric"
+                      aria-label={`Chiffre ${idx + 1} du code de vérification`}
                     />
                   ))}
                 </div>
                 <div className="flex items-center justify-between text-body-sm font-body-sm pt-1">
                   <span className="text-on-surface-variant flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[16px] text-surface-tint">sms</span>
-                    Code reçu en 4s
+                    <span className="material-symbols-outlined text-[16px] text-surface-tint">{phoneVerified ? 'verified' : 'sms'}</span>
+                    {phoneVerified ? 'Numéro vérifié' : 'Code à 4 chiffres'}
                   </span>
-                  <button 
-                    type="button"
-                    className="text-secondary font-label-md text-label-md underline hover:text-on-secondary-container"
-                    onClick={() => alert("Nouveau code SMS démo envoyé : 4556")}
-                  >
-                    Renvoyer le code
-                  </button>
+                  <div className="flex gap-3">
+                    <button type="button" className="text-secondary font-label-md text-label-md underline" onClick={handleSendOtp}>
+                      {otpRequested ? 'Renvoyer' : 'Recevoir un code'}
+                    </button>
+                    <button type="button" disabled={!otpRequested || phoneVerified} className="text-primary font-label-md text-label-md underline disabled:opacity-50" onClick={handleVerifyPhone}>
+                      Vérifier
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -278,6 +333,7 @@ export default function ClientRegistrationScreen({ onBack, onSuccess, onGoToLogi
               <label className="flex items-start gap-space-sm cursor-pointer select-none mt-1">
                 <input 
                   type="checkbox"
+                  required
                   checked={acceptTerms}
                   onChange={(e) => setAcceptTerms(e.target.checked)}
                   className="mt-1 w-5 h-5 rounded text-primary focus:ring-0 accent-primary cursor-pointer" 
@@ -288,11 +344,13 @@ export default function ClientRegistrationScreen({ onBack, onSuccess, onGoToLogi
               </label>
 
               {/* Primary Action CTA Button */}
+              {apiError && <p role="alert" className="text-sm font-semibold text-red-700">{apiError}</p>}
               <button 
                 type="submit"
+                disabled={isSubmitting || !phoneVerified}
                 className="w-full bg-primary hover:bg-primary-container text-on-primary font-headline-sm text-headline-sm rounded-full py-4 px-space-lg flex items-center justify-center gap-space-sm shadow-md transition-all active:scale-[0.99] mt-2"
               >
-                <span>Finaliser mon inscription</span>
+                <span>{isSubmitting ? 'Création du compte...' : 'Finaliser mon inscription'}</span>
                 <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
               </button>
 

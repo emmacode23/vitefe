@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { api } from '../../api';
 
 export default function LoginScreen({ onBack, onLoginSuccess, onRegisterClient, onRegisterArtisan }) {
   const [activeTab, setActiveTab] = useState('sms'); // 'sms' | 'pwd'
@@ -8,6 +9,7 @@ export default function LoginScreen({ onBack, onLoginSuccess, onRegisterClient, 
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [toast, setToast] = useState({ show: false, message: '', icon: 'check_circle' });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Formatage automatique du numéro ivoirien (10 chiffres : 07 00 00 00 00)
   const handlePhoneChange = (e) => {
@@ -29,20 +31,34 @@ export default function LoginScreen({ onBack, onLoginSuccess, onRegisterClient, 
     }, 3500);
   };
 
-  const handleLoginSubmit = (e) => {
+  const handleLoginSubmit = async (e) => {
     e.preventDefault();
-    if (onLoginSuccess) {
-      onLoginSuccess({ phone: phone || '07 89 45 12 00', method: activeTab });
+    setIsSubmitting(true);
+    try {
+      const result = activeTab === 'pwd'
+        ? await api.login({ phone, password })
+        : await api.verifyOtp(phone, otp);
+      onLoginSuccess?.(result.user);
+    } catch (error) {
+      showNotification(error.message, 'error');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const handleSendOtp = () => {
+  const handleSendOtp = async () => {
     const cleanPhone = phone.replace(/\s/g, '');
     if (!cleanPhone || cleanPhone.length < 8) {
       showNotification('Renseignez d’abord votre numéro de téléphone.', 'phone_iphone');
       return;
     }
-    showNotification('Un nouveau code OTP vient de vous être envoyé par SMS (+225).', 'mark_email_read');
+    try {
+      const result = await api.requestOtp(phone);
+      const codeMessage = result.developmentCode ? ` Code démo : ${result.developmentCode}.` : '';
+      showNotification(`${result.message}${codeMessage}`, 'mark_email_read');
+    } catch (error) {
+      showNotification(error.message, 'error');
+    }
   };
 
   const handleBiometric = () => {
@@ -50,7 +66,7 @@ export default function LoginScreen({ onBack, onLoginSuccess, onRegisterClient, 
   };
 
   const handleForgotPassword = () => {
-    showNotification('Instructions de récupération envoyées par SMS (+225).', 'lock_reset');
+    showNotification('La récupération par SMS sera disponible après la configuration du fournisseur SMS.', 'info');
   };
 
   const handleClientSignUp = () => {
@@ -293,9 +309,10 @@ export default function LoginScreen({ onBack, onLoginSuccess, onRegisterClient, 
               {/* Primary Action CTA Button */}
               <button 
                 type="submit"
+                disabled={isSubmitting}
                 className="w-full h-12 bg-primary text-on-primary rounded-full font-label-lg text-label-lg flex items-center justify-center gap-2 shadow-md hover:bg-primary-container active:scale-[0.99] transition-all mt-1"
               >
-                <span>Me connecter</span>
+                <span>{isSubmitting ? 'Connexion...' : 'Me connecter'}</span>
                 <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
               </button>
 

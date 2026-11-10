@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { api } from '../../api';
 
 const CRAFTS = [
   { id: 'Plomberie', label: 'Plomberie', subtitle: 'Urgences & Fuites', icon: 'plumbing' },
@@ -17,15 +18,22 @@ const WALLETS = [
 ];
 
 export default function ArtisanRegistrationScreen({ onBack, onSuccess, onGoToLogin }) {
-  const [proName, setProName] = useState('Kouassi Aristide');
+  const [proName, setProName] = useState('');
   const [selectedCraft, setSelectedCraft] = useState('Plomberie');
-  const [whatsappPhone, setWhatsappPhone] = useState('07 88 12 34 56');
+  const [whatsappPhone, setWhatsappPhone] = useState('');
   const [commune, setCommune] = useState('Cocody (Angré, Riviera, Deux-Plateaux)');
   const [selectedWallet, setSelectedWallet] = useState('Wave');
   const [cniFile, setCniFile] = useState({ name: 'CNI_Kouassi_Recto_Verso.jpg', status: '2.4 Mo • Document conforme' });
   const [toolsFile, setToolsFile] = useState({ name: 'Kit_Caisse_Outils_Pro.png', status: "Validé pour l'inspection" });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showToast, setShowToast] = useState(false);
+  const [password, setPassword] = useState('');
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [apiError, setApiError] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [otpRequested, setOtpRequested] = useState(false);
+  const [phoneVerified, setPhoneVerified] = useState(false);
+  const [otpMessage, setOtpMessage] = useState('');
 
   const handlePhoneChange = (e) => {
     const raw = e.target.value.replace(/\D/g, '').substring(0, 10);
@@ -35,6 +43,34 @@ export default function ArtisanRegistrationScreen({ onBack, onSuccess, onGoToLog
       formatted += raw[i];
     }
     setWhatsappPhone(formatted);
+    setPhoneVerified(false);
+    setOtpRequested(false);
+    setOtpCode('');
+    setApiError('');
+    setOtpMessage('');
+  };
+
+  const handleSendOtp = async () => {
+    setApiError('');
+    try {
+      const result = await api.requestOtp(whatsappPhone);
+      setOtpRequested(true);
+      setPhoneVerified(false);
+      setOtpMessage(result.developmentCode ? `Code de test : ${result.developmentCode}` : result.message);
+    } catch (error) {
+      setApiError(error.message);
+    }
+  };
+
+  const handleVerifyPhone = async () => {
+    setApiError('');
+    try {
+      const result = await api.verifyOtp(whatsappPhone, otpCode, false);
+      if (!result.verified) throw new Error('Ce numéro est déjà associé à un compte. Connectez-vous.');
+      setPhoneVerified(true);
+    } catch (error) {
+      setApiError(error.message);
+    }
   };
 
   const handleSimulateUpload = (type) => {
@@ -45,10 +81,23 @@ export default function ArtisanRegistrationScreen({ onBack, onSuccess, onGoToLog
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (onSuccess) {
-      onSuccess({ proName, craft: selectedCraft, phone: whatsappPhone, commune, wallet: selectedWallet, role: 'artisan' });
+    if (!phoneVerified) {
+      setApiError('Vérifiez votre numéro de téléphone avant de continuer.');
+      return;
+    }
+    setApiError('');
+    setIsSubmitting(true);
+    try {
+      const result = await api.register({
+        role: 'artisan', proName, craft: selectedCraft, phone: whatsappPhone,
+        commune, wallet: selectedWallet, password, termsAccepted,
+      });
+      onSuccess?.(result.user);
+    } catch (error) {
+      setApiError(error.message);
+      setIsSubmitting(false);
     }
   };
 
@@ -133,6 +182,24 @@ export default function ArtisanRegistrationScreen({ onBack, onSuccess, onGoToLog
                     Rejoignez le 1er réseau d'artisans et soignants certifiés à Abidjan.
                   </p>
                 </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button type="button" onClick={handleSendOtp} className="text-primary font-label-sm underline">
+                    {otpRequested ? 'Renvoyer le code' : 'Recevoir un code de vérification'}
+                  </button>
+                  <input
+                    className="h-10 w-32 px-3 rounded-lg bg-surface-container-lowest text-on-surface shadow-sm"
+                    aria-label="Code de vérification SMS"
+                    inputMode="numeric"
+                    maxLength={6}
+                    placeholder="Code SMS"
+                    value={otpCode}
+                    onChange={(event) => setOtpCode(event.target.value.replace(/\D/g, ''))}
+                  />
+                  <button type="button" disabled={!otpRequested || phoneVerified} onClick={handleVerifyPhone} className="text-secondary font-label-sm underline disabled:opacity-50">
+                    {phoneVerified ? 'Numéro vérifié' : 'Vérifier'}
+                  </button>
+                </div>
+                {otpMessage && <p role="status" className="text-sm text-on-surface-variant">{otpMessage}</p>}
               </div>
               {/* Trust perks capsule bar */}
               <div className="mt-4 pt-3 bg-primary/40 -mx-space-md -mb-space-md px-space-md py-2.5 flex items-center justify-between text-on-primary-container text-label-sm font-label-sm">
@@ -179,6 +246,7 @@ export default function ArtisanRegistrationScreen({ onBack, onSuccess, onGoToLog
                     id="pro-name" 
                     placeholder="Ex: Koffi Kouassi / Ivoire Climat SARL" 
                     type="text" 
+                    required
                     value={proName}
                     onChange={(e) => setProName(e.target.value)}
                   />
@@ -239,6 +307,7 @@ export default function ArtisanRegistrationScreen({ onBack, onSuccess, onGoToLog
                       id="phone-number" 
                       placeholder="07 08 45 67 89" 
                       type="tel" 
+                      required
                       value={whatsappPhone}
                       onChange={handlePhoneChange}
                     />
@@ -422,9 +491,26 @@ export default function ArtisanRegistrationScreen({ onBack, onSuccess, onGoToLog
 
             {/* Action Section */}
             <div className="flex flex-col gap-3 pt-2">
+              <div className="flex flex-col gap-1.5">
+                <label className="font-label-md text-label-md text-on-surface" htmlFor="artisan-password">Mot de passe (8 caractères minimum)</label>
+                <input
+                  className="w-full h-12 px-3 rounded-lg bg-surface-container-lowest text-on-surface shadow-sm"
+                  id="artisan-password"
+                  type="password"
+                  minLength={8}
+                  required
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                />
+              </div>
+              <label className="flex items-start gap-2 text-sm text-on-surface-variant">
+                <input type="checkbox" required checked={termsAccepted} onChange={(event) => setTermsAccepted(event.target.checked)} />
+                <span>J'accepte les conditions d'utilisation de Vitefê.</span>
+              </label>
+              {apiError && <p role="alert" className="text-sm font-semibold text-red-700">{apiError}</p>}
               <button 
                 type="submit"
-                disabled={isSubmitting}
+                disabled={isSubmitting || !phoneVerified}
                 className="w-full h-14 rounded-xl bg-primary hover:bg-primary-container text-on-primary font-headline-sm text-headline-sm flex items-center justify-center gap-2 shadow-lg transition-all active:scale-[0.99] disabled:opacity-70"
               >
                 {isSubmitting ? (
